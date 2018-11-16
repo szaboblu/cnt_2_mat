@@ -2,6 +2,10 @@ function [h,e,handles] = cnt_2_mat(filename)
 fid = fopen(filename,'r');
 disp(['Loading file ' filename ' ...'])
 
+handles.rep = dir(filename);
+handles.path = [handles.rep.folder , '/Mat_files'];
+mkdir(handles.path);
+
 h.rev               = fread(fid,12,'char');
 h.nextfile          = fread(fid,1,'long');
 h.prevfile          = fread(fid,1,'long');
@@ -297,7 +301,7 @@ handles.chsign = handles.filename(1,1:12);
 % 
 % for n = 1 : handles.chnum
 %   data = adat(n,:)'.*handles.trig;
-%   handles.chname{n,1} = [handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
+%   handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
 %   disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
 %   save(handles.chname{n,1},'data');
 % end
@@ -308,14 +312,15 @@ handles.chsign = handles.filename(1,1:12);
 % --> jó nagy fájlokhoz is
 
 tic
-for n = 1:handles.chnum
+%for n = 1:handles.chnum
+n = 1;
     fseek(fid,handles.minbyte + 2*(n-1),-1);
     skip = (handles.chnum-1)*2;
     data = fread(fid, [1,handles.maxsec*handles.srate] ,'int16',skip)'.*handles.trig;
-    handles.chname{n,1} = [handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
-    disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
-    save(handles.chname{n,1},'data');
-end
+    handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
+    disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...']);
+    save (handles.chname{n,1},'data');
+%end
 toc
 
 end
