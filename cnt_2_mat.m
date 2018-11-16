@@ -258,7 +258,7 @@ for n = 1:handles.chnum
         str=fread(fid,10,'char');
         space=find(str== 32);
         das=find(str==45);
-        num = find(str > 47 & str < 58);
+        num = str > 47 & str < 58;
         str=char(str);
         
         
@@ -284,10 +284,11 @@ for n = 1:handles.chnum
     end
 
 handles.chsign = handles.filename(1,1:12);
+
 %% Mátrixba kiolvasás onnan mentés
-% Gyorsabb (1,5 GB : ~11 min) viszont sok memóriát foglal (1,5 GB -> 7 GB) 
+% Gyorsabb(1,5 GB : ~11 min) viszont sok memóriát foglal(1,5 GB -> 7 GB(túlcsordult Ram?)) 
 % --> nagyobb fájl esetén megtelik a memória
-% minél kisebb annél gyorsabb?
+% minél kisebb annél gyorsabb? - nem csordul túl
 
 % tic
 % fseek(fid,handles.minbyte,-1);
