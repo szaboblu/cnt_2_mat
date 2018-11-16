@@ -312,15 +312,14 @@ handles.chsign = handles.filename(1,1:12);
 % --> jó nagy fájlokhoz is
 
 tic
-%for n = 1:handles.chnum
-n = 1;
+for n = 1:handles.chnum
     fseek(fid,handles.minbyte + 2*(n-1),-1);
     skip = (handles.chnum-1)*2;
     data = fread(fid, [1,handles.maxsec*handles.srate] ,'int16',skip)'.*handles.trig;
     handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
     disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...']);
     save (handles.chname{n,1},'data');
-%end
+end
 toc
 
 end
