@@ -1,5 +1,11 @@
 function [h,e,handles] = cnt_2_mat(filename)
 fid = fopen(filename,'r');
+
+handles.fid = fid;
+if fid == -1
+  error('Author:Function:OpenFile', 'Cannot open file: %s', filename);
+end
+
 disp(['Loading file ' filename ' ...'])
 
 handles.rep = dir(filename);
@@ -295,10 +301,10 @@ handles.chsign = handles.filename(1,1:12);
 % minél kisebb annél gyorsabb? - nem csordul túl
 
 % tic
-% fseek(fid,handles.minbyte,-1);
-% adat = fread(fid,[handles.chnum, handles.maxsec*handles.srate],'int16');
+fseek(fid,handles.minbyte,-1);
+adat = fread(fid,[handles.chnum, handles.maxsec*handles.srate],'int16');
 % toc
-% 
+
 % for n = 1 : handles.chnum
 %   data = adat(n,:)'.*handles.trig;
 %   handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
@@ -307,20 +313,61 @@ handles.chsign = handles.filename(1,1:12);
 % end
 % toc
 
+%%Ezen belül parallel kiolvasással:
+% 1.5 GB: 9 min (nem annyira jelentõs mint a párhuzamos kiolvasásnál)
+tic
+parfor n = 1 : handles.chnum
+  data = [];
+  data(:,n) = adat(n,:)'.*handles.trig;
+  %disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
+  m = matfile([handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'],'writable',true);
+  m.data = data(:,n);
+end
+toc
+
+
 %% --> Csatornánkénti kiolvasás és mentés
 %valamivel lassabb(1,5 GB: ~13 min) viszont kevés memóriát használ(1 channel + matlab)~1 GB)
 % --> jó nagy fájlokhoz is
 
-tic
-for n = 1:handles.chnum
-    fseek(fid,handles.minbyte + 2*(n-1),-1);
-    skip = (handles.chnum-1)*2;
-    data = fread(fid, [1,handles.maxsec*handles.srate] ,'int16',skip)'.*handles.trig;
-    handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
-    disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...']);
-    save (handles.chname{n,1},'data');
-end
-toc
+% tic
+% for n = 1:handles.chnum
+%     fseek(fid,handles.minbyte + 2*(n-1),-1);
+%     skip = (handles.chnum-1)*2;
+%     data = fread(fid, [1,handles.maxsec*handles.srate]
+%     ,'int16',skip)'.*handles.trig; % ~ 20 s/ch
+%     handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
+%     disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...']);
+%     save (handles.chname{n,1},'data'); % ~ 11 s/ch
+% end
+% toc
+
+%% Parallel Csatornából kiolvasás és mentés
+% kihasználja az összes magot (nekem 2)
+% nagyon gyors (1.5 GB : 7.5 min)
+% a leglassab folyamat határozza meg egy szakasz gyorsaságát
+% két munkásnál két csatorna = 25 + 12 s
+% két munkással 24 csatorna = 24/2 * (25 + 12) ~ 7.4 min
+
+% skip = (handles.chnum-1)*2;
+% tic
+% 
+% parfor n = 1:handles.chnum
+%     data = [];
+%     fid = fopen(filename,'r'); 
+%     fseek(fid,handles.minbyte + 2*(n - 1),-1);
+%     data(:,n) = fread(fid, [1,handles.maxsec*handles.srate]...
+%     ,'int16',skip)'.*handles.trig; % ~ 25 s/ch
+%     disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
+%     m = matfile([handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'],'writable',true);
+%     m.data = data(:,n); % ~ 10-12 s/ch
+% end
+% toc
+
+%% lehetne írni egy külön paralell mentésû függvényt is, de találtam egyszerûbbet
+%     function par_save(name,data)
+%        save(name,'data'); 
+%     end
 
 end
 
