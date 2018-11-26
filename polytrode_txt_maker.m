@@ -1,25 +1,17 @@
-function polytrode_txt_maker(handles,poli)
+function polytrode_txt_maker(handles,par,poli)
 % poli : how many electrodes do we want to be in 1 polytrode
 
-
-path = [handles.rep.folder , '/Polytrode_txt'];
-
-if exist(path) ~= 0
- rmdir(path , 's') ;
-end
-
-mkdir(path);
-
+polytrodes = {};
 for i = 1 : handles.chnum - poli +1
-    pol = [];
-        for n = 0 : poli-2
-            pol =  [pol , handles.chsign, handles.chnames{i+n},'.mat','\n'];
-        end
-        pol =  [pol , handles.chsign, handles.chnames{i+poli-1},'.mat'];
-    num = num2str(i);
-    name = [path,'/polytrode',num,'.txt'];
-    fileID = fopen(name,'w');
-    fprintf(fileID,pol);
+    
+        for n = 1 : poli
+            polytrodes{i,n} =  [handles.chsign,handles.chnames{i+n-1},'.mat'];
+        end    
 end
 
+name = [handles.fileinfo.folder,'/',par,'/log_deblock.mat'];
+m = matfile(name,'Writable',true);
+m.polytrodes = polytrodes;
+handles.path =[handles.path,'/',par];
+m.handles = handles;
 end

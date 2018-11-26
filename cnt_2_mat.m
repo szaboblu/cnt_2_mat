@@ -8,9 +8,9 @@ end
 
 disp(['Loading file ' filename ' ...'])
 
-handles.rep = dir(filename);
-handles.path = [handles.rep.folder , '/Mat_files'];
-mkdir(handles.path);
+handles.fileinfo = dir(filename);
+handles.path = [handles.fileinfo.folder];
+mkdir([handles.path , '/Mat_files']);
 
 h.rev               = fread(fid,12,'char');
 h.nextfile          = fread(fid,1,'long');
@@ -232,7 +232,7 @@ for n = 1:h.nchannels
 end
 
 
-handles.filename = filename;
+%handles.filename = filename;
 handles.databyte = 2;
 handles.srate=h.rate;
 handles.chnum=h.nchannels;
@@ -240,14 +240,14 @@ handles.wsize = h.numsamples/handles.srate;
 handles.byte = h.numsamples;
 handles.trig = h.trigisi;
      
-handles.inx1=0;
-handles.amp=0.02;
+%handles.inx1=0;
+%handles.amp=0.02;
 lengt=handles.wsize;
 
 
-handles.fileinfo=dir(handles.filename);
+%handles.fileinfo=dir(handles.filename);
 handles.filesize=handles.fileinfo.bytes;
-handles.page={[1:handles.chnum]};
+%handles.page={[1:handles.chnum]};
 handles.bytepersec=handles.srate * handles.databyte * handles.chnum;
 handles.minbyte=900+75*handles.chnum;
 handles.maxbyte=handles.filesize-handles.minbyte;
@@ -280,20 +280,20 @@ for n = 1:handles.chnum
         
         handles.chnames{n}=str(num)';
         
-        if ~isempty(das)
-            c1=str(1:das(1)-1)';
-            c2=str(das(1)+1:space(1))';
-            handles.orig.chnames{n,1}=c1;
-            handles.orig.chnames{n,1}=c2;
-        else
-            c1=str(1:space(1))';
-            c2='REF';
-            handles.orig.chnames{n,1}=c1;
-            handles.orig.chnames{n,2}=c2;
-        end
+%         if ~isempty(das)
+%             c1=str(1:das(1)-1)';
+%             c2=str(das(1)+1:space(1))';
+%             handles.orig.chnames{n,1}=c1;
+%             handles.orig.chnames{n,1}=c2;
+%         else
+%             c1=str(1:space(1))';
+%             c2='REF';
+%             handles.orig.chnames{n,1}=c1;
+%             handles.orig.chnames{n,2}=c2;
+%         end
     end
 
-handles.chsign = handles.filename(1,1:12);
+handles.chsign = handles.fileinfo.name(1,1:12);
 
 %% Mátrixba kiolvasás onnan mentés
 % Gyorsabb(1,5 GB : ~11 min) viszont sok memóriát foglal(1,5 GB -> 7 GB(túlcsordult Ram?)) 
@@ -301,8 +301,8 @@ handles.chsign = handles.filename(1,1:12);
 % minél kisebb annél gyorsabb? - nem csordul túl
 
 % tic
-fseek(fid,handles.minbyte,-1);
-adat = fread(fid,[handles.chnum, handles.maxsec*handles.srate],'int16');
+% fseek(fid,handles.minbyte,-1);
+% adat = fread(fid,[handles.chnum, handles.maxsec*handles.srate],'int16');
 % toc
 
 % for n = 1 : handles.chnum
@@ -315,15 +315,15 @@ adat = fread(fid,[handles.chnum, handles.maxsec*handles.srate],'int16');
 
 %%Ezen belül parallel kiolvasással:
 % 1.5 GB: 9 min (nem annyira jelentõs mint a párhuzamos kiolvasásnál)
-tic
-parfor n = 1 : handles.chnum
-  data = [];
-  data(:,n) = adat(n,:)'.*handles.trig;
-  %disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
-  m = matfile([handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'],'writable',true);
-  m.data = data(:,n);
-end
-toc
+% tic
+% parfor n = 1 : handles.chnum
+%   data = [];
+%   data(:,n) = adat(n,:)'.*handles.trig;
+%   %disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
+%   m = matfile([handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'],'writable',true);
+%   m.data = data(:,n);
+% end
+% toc
 
 
 %% --> Csatornánkénti kiolvasás és mentés
