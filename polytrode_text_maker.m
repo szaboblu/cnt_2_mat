@@ -18,9 +18,9 @@ for i = 1 : handles.chnum - poli +1
             %disp([num2str(i) '. file']);
 end
 
-% name = [handles.fileinfo.folder,'/',par,'/log_deblock.mat'];
-% m = matfile(name,'Writable',true);
-% m.polytrodes = polytrodes;
-% handles.path =[handles.path,'/',par];
-% m.handles = handles;
+name = [handles.fileinfo.folder,'/',par,'/log_deblock.mat'];
+m = matfile(name,'Writable',true);
+m.polytrodes = polytrodes;
+handles.path =[handles.path,'/',par];
+m.handles = handles;
 end
