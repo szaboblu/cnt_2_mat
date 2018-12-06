@@ -1,16 +1,28 @@
-function [h,e,handles] = cnt_2_mat(filename)
+function [hand] = cnt_2_mat(filename, varargin)
 fid = fopen(filename,'r');
 
-handles.fid = fid;
+if size(varargin) > 0
+matrix = varargin{2};
+paralell = varargin{3};
+%ch = varargin{1};
+else 
+    matrix = false;
+    paralell = false;
+    %ch = all;
+end
+
+
+%hand.fid = fid;
 if fid == -1
   error('Author:Function:OpenFile', 'Cannot open file: %s', filename);
 end
 
 disp(['Loading file ' filename ' ...'])
 
-handles.fileinfo = dir(filename);
-handles.path = [handles.fileinfo.folder];
-mkdir([handles.path , '/Mat_files']);
+fileinfo = dir(filename);
+hand.name = fileinfo.name;
+hand.path = fileinfo.folder;
+mkdir([hand.path, '/Mat_files']);
 
 h.rev               = fread(fid,12,'char');
 h.nextfile          = fread(fid,1,'long');
@@ -228,42 +240,42 @@ for n = 1:h.nchannels
     e(n).rectify        = fread(fid,1,'char');
     e(n).physicalchnl   = fread(fid,1,'char');
     e(n).calib          = fread(fid,1,'float');
-   % handles.chnames{n} = e(n).physicalchnl;
+   % hand.chnames{n} = e(n).physicalchnl;
 end
 
 
-%handles.filename = filename;
-handles.databyte = 2;
-handles.srate=h.rate;
-handles.chnum=h.nchannels;
-handles.wsize = h.numsamples/handles.srate;
-handles.byte = h.numsamples;
-handles.trig = h.trigisi;
+%hand.filename = filename;
+hand.databyte = 2;
+hand.srate=h.rate;
+hand.chnum=h.nchannels;
+%hand.wsize = h.numsamples/hand.srate;
+%hand.byte = h.numsamples;
+%hand.trig = h.trigisi;
      
-%handles.inx1=0;
-%handles.amp=0.02;
-lengt=handles.wsize;
+%hand.inx1=0;
+%hand.amp=0.02;
+%lengt=hand.wsize;
 
 
-%handles.fileinfo=dir(handles.filename);
-handles.filesize=handles.fileinfo.bytes;
-%handles.page={[1:handles.chnum]};
-handles.bytepersec=handles.srate * handles.databyte * handles.chnum;
-handles.minbyte=900+75*handles.chnum;
-handles.maxbyte=handles.filesize-handles.minbyte;
+%hand.fileinfo=dir(hand.filename);
+hand.filesize=fileinfo.bytes;
+%hand.page={[1:hand.chnum]};
+hand.bytepersec=hand.srate * hand.databyte * hand.chnum;
+hand.minbyte=900+75*hand.chnum;
+%hand.maxbyte=hand.filesize-hand.minbyte;
 
-maxsec=(handles.maxbyte-handles.minbyte)/handles.bytepersec;
+maxsec=(fileinfo.bytes-hand.minbyte)/hand.bytepersec;
 
 % ha a végén lennének hamis adatpontok
 dif = mod(maxsec,10);
 if dif < 0.5 
-   handles.maxsec = maxsec-dif;
+   hand.maxsec = maxsec-dif;
 else 
-    handles.maxsec = maxsec;
+    hand.maxsec = maxsec;
 end
 
 % channel nevek
-for n = 1:handles.chnum
+for n = 1:hand.chnum
         fseek(fid,900+75*(n-1),-1);
         str=fread(fid,10,'char');
         space=find(str== 32);
@@ -278,96 +290,98 @@ for n = 1:handles.chnum
             space=space-1;
         end
         
-        handles.chnames{n}=str(num)';
+        hand.chnames{n}=str(num)';
         
 %         if ~isempty(das)
 %             c1=str(1:das(1)-1)';
 %             c2=str(das(1)+1:space(1))';
-%             handles.orig.chnames{n,1}=c1;
-%             handles.orig.chnames{n,1}=c2;
+%             hand.orig.chnames{n,1}=c1;
+%             hand.orig.chnames{n,1}=c2;
 %         else
 %             c1=str(1:space(1))';
 %             c2='REF';
-%             handles.orig.chnames{n,1}=c1;
-%             handles.orig.chnames{n,2}=c2;
+%             hand.orig.chnames{n,1}=c1;
+%             hand.orig.chnames{n,2}=c2;
 %         end
     end
 
-handles.chsign = handles.fileinfo.name(1,1:12);
+hand.chsign = fileinfo.name(1,1:12);
 
-%% Mátrixba kiolvasás onnan mentés
-% Gyorsabb(1,5 GB : ~11 min) viszont sok memóriát foglal(1,5 GB -> 7 GB(túlcsordult Ram?)) 
-% --> nagyobb fájl esetén megtelik a memória
-% minél kisebb annél gyorsabb? - nem csordul túl
+path = [hand.path,'/Mat_files'];
+if exist(path) == 0
+if matrix == true
+    %% Mátrixba kiolvasás onnan mentés
+    % Gyorsabb(1,5 GB : ~11 min) viszont sok memóriát foglal(1,5 GB -> 7 GB(túlcsordult Ram?)) 
+    % --> nagyobb fájl esetén megtelik a memória
+    % minél kisebb annél gyorsabb? - nem csordul túl
 
-% tic
-% fseek(fid,handles.minbyte,-1);
-% adat = fread(fid,[handles.chnum, handles.maxsec*handles.srate],'int16');
-% toc
+    tic
+    fseek(fid,hand.minbyte,-1);
+    adat = fread(fid,[hand.chnum, hand.maxsec*hand.srate],'int16');
+    toc
+    tic
+    if paralell == true
+        %%Ezen belül parallel kiolvasással:
+        % 1.5 GB: 9 min (nem annyira jelentõs mint a párhuzamos kiolvasásnál)
+        
+        parfor n = 1 : hand.chnum
+            data = [];
+            data(:,n) = adat(n,:)'.*0.25;
+            disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...'])
+            m = matfile([path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'writable',true);
+            m.data = data(:,n);
+        end
+        toc
+    else
+        for n = 1 : hand.chnum
+            data = adat(n,:)'.*0.25;
+            hand.chname{n,1} = [path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'];
+            disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...'])
+            save(hand.chname{n,1},'data');
+        end
+        toc
+    end
+elseif matrix ~= true
+    %% --> Csatornánkénti kiolvasás és mentés
+    %valamivel lassabb(1,5 GB: ~13 min) viszont kevés memóriát használ(1 channel + matlab)~1 GB)
+    % --> jó nagy fájlokhoz is
 
-% for n = 1 : handles.chnum
-%   data = adat(n,:)'.*handles.trig;
-%   handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
-%   disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
-%   save(handles.chname{n,1},'data');
-% end
-% toc
+    if paralell == true
+        %% Parallel Csatornából kiolvasás és mentés
+        % kihasználja az összes magot (nekem 2)
+        % nagyon gyors (1.5 GB : 7.5 min)
+        % a leglassab folyamat határozza meg egy szakasz gyorsaságát
+        % két munkásnál két csatorna = 25 + 12 s
+        % két munkással 24 csatorna = 24/2 * (25 + 12) ~ 7.4 min
 
-%%Ezen belül parallel kiolvasással:
-% 1.5 GB: 9 min (nem annyira jelentõs mint a párhuzamos kiolvasásnál)
-% tic
-% parfor n = 1 : handles.chnum
-%   data = [];
-%   data(:,n) = adat(n,:)'.*handles.trig;
-%   %disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
-%   m = matfile([handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'],'writable',true);
-%   m.data = data(:,n);
-% end
-% toc
+        skip = (hand.chnum-1)*2;
+        tic
 
-
-%% --> Csatornánkénti kiolvasás és mentés
-%valamivel lassabb(1,5 GB: ~13 min) viszont kevés memóriát használ(1 channel + matlab)~1 GB)
-% --> jó nagy fájlokhoz is
-
-% tic
-% for n = 1:handles.chnum
-%     fseek(fid,handles.minbyte + 2*(n-1),-1);
-%     skip = (handles.chnum-1)*2;
-%     data = fread(fid, [1,handles.maxsec*handles.srate]
-%     ,'int16',skip)'.*handles.trig; % ~ 20 s/ch
-%     handles.chname{n,1} = [handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'];
-%     disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...']);
-%     save (handles.chname{n,1},'data'); % ~ 11 s/ch
-% end
-% toc
-
-%% Parallel Csatornából kiolvasás és mentés
-% kihasználja az összes magot (nekem 2)
-% nagyon gyors (1.5 GB : 7.5 min)
-% a leglassab folyamat határozza meg egy szakasz gyorsaságát
-% két munkásnál két csatorna = 25 + 12 s
-% két munkással 24 csatorna = 24/2 * (25 + 12) ~ 7.4 min
-
-% skip = (handles.chnum-1)*2;
-% tic
-% 
-% parfor n = 1:handles.chnum
-%     data = [];
-%     fid = fopen(filename,'r'); 
-%     fseek(fid,handles.minbyte + 2*(n - 1),-1);
-%     data(:,n) = fread(fid, [1,handles.maxsec*handles.srate]...
-%     ,'int16',skip)'.*handles.trig; % ~ 25 s/ch
-%     disp(['Saving Channel ' num2str(n) '/' num2str(handles.chnum) ' ...'])
-%     m = matfile([handles.path, '/', handles.chsign , num2str(handles.chnames{1,n}), '.mat'],'writable',true);
-%     m.data = data(:,n); % ~ 10-12 s/ch
-% end
-% toc
-
-%% lehetne írni egy külön paralell mentésû függvényt is, de találtam egyszerûbbet
-%     function par_save(name,data)
-%        save(name,'data'); 
-%     end
-
+        parfor n = 1:hand.chnum
+            data = [];
+            fid = fopen(filename,'r'); 
+            fseek(fid,hand.minbyte + 2*(n - 1),-1);
+            data(:,n) = fread(fid, [1,hand.maxsec*hand.srate]...
+            ,'int16',skip)'.*0.25; % ~ 25 s/ch
+            disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...'])
+            m = matfile([path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'writable',true);
+            m.data = data(:,n); % ~ 10-12 s/ch
+        end
+        toc
+    else
+        tic
+        for n = 1:hand.chnum
+            fseek(fid,hand.minbyte + 2*(n-1),-1);
+            skip = (hand.chnum-1)*2;
+            data = fread(fid, [1,hand.maxsec*hand.srate]...
+            ,'int16',skip)'.*0.25; % ~ 20 s/ch
+            hand.chname{n,1} = [path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'];
+            disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...']);
+            save (hand.chname{n,1},'data'); % ~ 11 s/ch
+        end
+        toc
+    end
+end
+end
 end
 
