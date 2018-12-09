@@ -112,8 +112,9 @@ function Run_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 %handles.polytrodes_2_run = 5;
 %handles.dirpath = uigetdir;
-
+if ~exist(handles.dirpath)
 handles.dirpath = uigetdir;
+end
 
 name = [handles.dirpath,'/log_deblock.mat'];
 m = matfile(name,'Writable',true);
@@ -126,12 +127,12 @@ handles.chnum = h.chnum;
 % addpath([handles.path, '/Mat_files']);
 % addpath(genpath(handles.path));
 
-poli = [handles.dirpath, '/Polytrodes'];
-if ~exist(poli,'dir')
-mkdir(poli);
-polytrode_text_maker(handles,handles.polytrodesize);
-end
-addpath(poli);
+% poli = [handles.dirpath, '/Polytrodes'];
+% if ~exist(poli,'dir')
+% mkdir(poli);
+% polytrode_text_maker(handles,handles.polytrodesize);
+% end
+% addpath(poli);
 
 spikespath = [handles.dirpath, '/Polytrode_spikes'];
 if ~exist(spikespath,'dir')
@@ -156,8 +157,9 @@ end
 end
 
 toc
-cd(handles.dirpath);
 addpath(spikespath)
+
+cd(handles.dirpath);
 timespath = [handles.dirpath, '/Times_polytrodes'];
 if ~exist(timespath,'dir')
 mkdir(timespath);
@@ -179,7 +181,42 @@ if  ~exist(handles.timefiles{i,1},'file')
 end
 end
 toc
+
+addpath(timespath);
 cd(handles.dirpath);
+
+
+
+if isfield(handles,'segments')
+nspath = [handles.dirpath, '/SUAs'];
+if ~exist(nspath,'dir')
+mkdir(nspath);
+end
+cd(nspath);
+tic
+for i = 1:size(handles.timefiles,2)
+disp(['Running wave_clus_2_nswiew on times_polytrode ' num2str(handles.polytrodes_2_run(1,i)) ' ...'])
+[clusters_2_nswiew] = wave_clus_2_nswiew(num2str(handles.polytrodes_2_run(1,i)), [handles.dirpath,'/log_deblock.mat'], timespath);
+end
+toc
+addpath(nspath);
+cd(handles.dirpath);
+
+thrpath = [handles.dirpath, '/THRs'];
+if ~exist(thrpath,'dir')
+mkdir(thrpath);
+end
+cd(thrpath);
+tic
+for i = 1:size(handles.timefiles,2)
+disp(['Running wave_clus_2_nswiew on polytrode ' num2str(handles.polytrodes_2_run(1,i)) ' ...'])
+[t_dp_thr, thr_step, ch_id, par] = noise_level_2_nswiew(num2str(handles.polytrodes_2_run(1,i)), [handles.dirpath,'/log_deblock.mat'], spikespath);
+end
+toc
+addpath(thrpath);
+cd(handles.dirpath);
+end
+guidata(hObject, handles);
 
 
 % --- Executes on button press in Load_data.
@@ -187,16 +224,28 @@ function Load_data_Callback(hObject, eventdata, handles)
 % hObject    handle to Load_data (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[fname, path, findex]=uigetfile('*.cnt','Select the data file');
-h = cnt_2_mat([path,fname]);
+[handles.fname, path, findex] = uigetfile('*.cnt','Select the data file');
+h = cnt_2_mat([path,handles.fname]);
+handles.h = h;
+handles.path = path;
+addpath(genpath([handles.path,'/Mat_files']))
+
+if isfield(handles,'dirpath')
+poli = [handles.dirpath, '/Polytrodes'];
+if ~exist(poli,'dir')
+mkdir(poli);
+polytrode_text_maker(h,handles.polytrodesize);
+end
+addpath(genpath(poli));
+end
 
 handles.chsign = h.chsign;
-handles.chnames =  h.chnames;
 handles.chnum = h.chnum;
+handles.chnames=h.chnames;
 
-handles.fname = fname;
-handles.path = path;
-handles.findex = findex;
+%handles.fname = fname;
+%handles.path = path;
+%handles.findex = findex;
 guidata(hObject, handles);
 
 
@@ -208,10 +257,31 @@ function Polytrode_chooser_Callback(hObject, eventdata, handles)
 
 handles.dirpath = uigetdir;
 
+%polytrode_text_maker(handles,handles.polytrodesize);
+
 name = [handles.dirpath,'/log_deblock.mat'];
 m = matfile(name,'Writable',true);
+if exist(name)
+varIsInMat = @(name) ~isempty(who(m, name));
+
+if varIsInMat('polytrodes')
 handles.polytrodes = m.polytrodes;
+
+else
+    disp('nincs polytrodes')
+end
 h = m.handles;
+handles.h = h;
+handles.chsign = h.chsign;
+handles.chnum = h.chnum;
+handles.chnames=h.chnames;
+
+if varIsInMat('segments')
+handles.segments = m.segments;
+
+else
+    disp('nincs segments')
+end
 
 prompt=['Existing pages:', newline];
 sz = strings(size(handles.polytrodes, 1));
@@ -227,7 +297,7 @@ if ~status
     val = 'all';
 end
 handles.polytrodes_2_run = val;
-
+end
 guidata(hObject, handles);
 
 
