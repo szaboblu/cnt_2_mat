@@ -22,7 +22,7 @@ function varargout = HandlerGUI(varargin)
 
 % Edit the above text to modify the response to help HandlerGUI
 
-% Last Modified by GUIDE v2.5 07-Dec-2018 19:42:40
+% Last Modified by GUIDE v2.5 10-Dec-2018 18:36:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -110,29 +110,13 @@ function Run_Callback(hObject, eventdata, handles)
 % hObject    handle to Run (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-%handles.polytrodes_2_run = 5;
-%handles.dirpath = uigetdir;
-if ~exist(handles.dirpath)
+
+if ~exist(handles.dirpath,'dir')
 handles.dirpath = uigetdir;
 end
 
-name = [handles.dirpath,'/log_deblock.mat'];
-m = matfile(name,'Writable',true);
-handles.polytrodes = m.polytrodes;
-h = m.handles;
-
-handles.chsign = h.chsign;
-handles.chnames =  h.chnames;
-handles.chnum = h.chnum;
 % addpath([handles.path, '/Mat_files']);
 % addpath(genpath(handles.path));
-
-% poli = [handles.dirpath, '/Polytrodes'];
-% if ~exist(poli,'dir')
-% mkdir(poli);
-% polytrode_text_maker(handles,handles.polytrodesize);
-% end
-% addpath(poli);
 
 spikespath = [handles.dirpath, '/Polytrode_spikes'];
 if ~exist(spikespath,'dir')
@@ -185,9 +169,7 @@ toc
 addpath(timespath);
 cd(handles.dirpath);
 
-
-
-if isfield(handles,'segments')
+if handles.deblock && isfield(handles,'segments')
 nspath = [handles.dirpath, '/SUAs'];
 if ~exist(nspath,'dir')
 mkdir(nspath);
@@ -243,9 +225,6 @@ handles.chsign = h.chsign;
 handles.chnum = h.chnum;
 handles.chnames=h.chnames;
 
-%handles.fname = fname;
-%handles.path = path;
-%handles.findex = findex;
 guidata(hObject, handles);
 
 
@@ -256,26 +235,60 @@ function Polytrode_chooser_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.dirpath = uigetdir;
+if ~exist([handles.dirpath, '/Polytrodes'],'dir')
+    prompt=['Set polytrodesize:', newline];
 
-%polytrode_text_maker(handles,handles.polytrodesize);
+answer=inputdlg(prompt,'There is no polytrode.txt in the folder: ',1,{''});
+
+[val, status] = str2num(answer{1});  
+if ~status
+    val = 1;
+end
+handles.polytrodesize = val;
+    
+    polsize = handles.polytrodesize;
+    polytrode_text_maker(handles,polsize);
+end
 
 name = [handles.dirpath,'/log_deblock.mat'];
 m = matfile(name,'Writable',true);
-if exist(name)
+
 varIsInMat = @(name) ~isempty(who(m, name));
+if ~exist(name)
+if isfield(handles,'dirpath')
+    poli = [handles.dirpath, '/Polytrodes'];
+    if ~varIsInMat('handles')
+        mkdir(poli);
+        polytrode_text_maker(handles,handles.polytrodesize);
+    end
+    addpath(genpath(poli));
+end
+else
+
 
 if varIsInMat('polytrodes')
 handles.polytrodes = m.polytrodes;
 
 else
-    disp('nincs polytrodes')
+    if isfield(handles,'dirpath')
+    poli = [handles.dirpath, '/Polytrodes'];
+    %if ~exist(poli,'dir')
+        mkdir(poli);
+        cd(mkdir);
+        polytrode_text_maker(handles,handles.polytrodesize);
+    %end
+    addpath(genpath(poli));
 end
-h = m.handles;
-handles.h = h;
-handles.chsign = h.chsign;
-handles.chnum = h.chnum;
-handles.chnames=h.chnames;
 
+end
+% if varIsInMat('handles')
+% h = m.handles;
+% handles.h = h;
+% 
+% handles.chsign = h.chsign;
+% handles.chnum = h.chnum;
+% handles.chnames=h.chnames;
+% end
 if varIsInMat('segments')
 handles.segments = m.segments;
 
@@ -301,28 +314,10 @@ end
 guidata(hObject, handles);
 
 
-% --- Executes on selection change in polytrodesize.
-function polytrodesize_Callback(hObject, eventdata, handles)
-% hObject    handle to polytrodesize (see GCBO)
+% --- Executes on button press in Set_par.
+function Set_par_Callback(hObject, eventdata, handles)
+set_parameters_ui
+ 
+% hObject    handle to Set_par (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-p = get(hObject,'Value');
-handles.polytrodesize = p;
-guidata(hObject, handles);
-
-% Hints: contents = cellstr(get(hObject,'String')) returns polytrodesize contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from polytrodesize
-
-
-% --- Executes during object creation, after setting all properties.
-function polytrodesize_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to polytrodesize (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end

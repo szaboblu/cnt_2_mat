@@ -4,10 +4,13 @@ function polytrode_text_maker(handles,varargin)
 polytrodes ={};
 if size(varargin)>0
     poli = varargin{1};
-if ~exist([handles.dirpath,'/Polytrodes'],'dir')
-    mkdir([handles.dirpath,'/Polytrodes']);
-end
+    
+
+
 for i = 1 : (handles.chnum - poli +1)
+        if ~exist([handles.dirpath,'/Polytrodes'],'dir')
+            mkdir([handles.dirpath,'/Polytrodes']);
+        end
             textfile_name = [handles.dirpath,'/Polytrodes','/','polytrode' ,num2str(i) ,'.txt'];
             fileID = fopen(textfile_name,'w');
             vec = [];
@@ -21,7 +24,9 @@ for i = 1 : (handles.chnum - poli +1)
             fprintf(fileID,vec);
             fclose(fileID);
 end
+
 end
+
 
 name = [handles.dirpath,'/log_deblock.mat'];
 m = matfile(name,'Writable',true);
@@ -29,5 +34,7 @@ if size(polytrodes,2) > 0
 m.polytrodes = polytrodes;
 end
 %handles.path =[handles.path,'/',handles.par];
+if ~isempty(who('handles','h'))
 m.handles = handles.h;
+end
 end
