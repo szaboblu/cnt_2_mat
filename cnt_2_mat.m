@@ -22,7 +22,7 @@ disp(['Loading file ' filename ' ...'])
 
 fileinfo = dir(filename);
 hand.name = fileinfo.name;
-hand.path = [fileinfo.folder, '/Mat_files'];
+hand.path = [fileinfo.folder, filesep 'Mat_files'];
 mkdir(hand.path);
 
 h.rev               = fread(fid,12,'char');
@@ -317,7 +317,7 @@ if matrix == true
     
     tic
     fseek(fid,hand.minbyte,-1);
-    adat = fread(fid,[hand.chnum, hand.maxsec*hand.srate],'int16')
+    adat = fread(fid,[hand.chnum, hand.maxsec*hand.srate],'int16');
     toc
     tic
     if paralell == true
@@ -325,21 +325,21 @@ if matrix == true
         % 1.5 GB: 9 min (nem annyira jelentõs mint a párhuzamos kiolvasásnál)
         
         parfor n = 1 : hand.chnum
-            if ~exist([hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
+            if ~exist([hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
                 data = [];
                 data(:,n) = adat(n,:)'.*0.25;
-                disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...'])
-                m = matfile([hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'writable',true);
+                disp(['Saving Channel ' num2str(n) filesep  num2str(hand.chnum) ' ...'])
+                m = matfile([hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'writable',true);
                 m.data = data(:,n);
             end
         end
         toc
     else
         for n = 1 : hand.chnum
-            if ~exist([hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
+            if ~exist([hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
             data = adat(n,:)'.*0.25;
-            hand.chname{n,1} = [hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'];
-            disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...'])
+            hand.chname{n,1} = [hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'];
+            disp(['Saving Channel ' num2str(n) filesep  num2str(hand.chnum) ' ...'])
             save(hand.chname{n,1},'data');
             end
         end
@@ -362,15 +362,14 @@ else
         skip = (hand.chnum-1)*2;
         tic
         parfor n = 1: hand.chnum
-            if ~exist([hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
+            if ~exist([hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
             data = [];
-            fid = fopen(filename,'r'); 
+            fid = fopen(filename,'r');
             fseek(fid,hand.minbyte + 2*(n - 1),-1);
-            data(:,n) = fread(fid, [1,hand.maxsec*hand.srate]...
-            ,'int16',skip)'.*0.25; % ~ 25 s/ch
-            disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...'])
-            disp([hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'])
-            m = matfile([hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'writable',true);
+            data(:,n) = fread(fid, [1,hand.maxsec*hand.srate],'int16',skip)'.*0.25; % ~ 25 s/ch
+            disp(['Saving Channel ' num2str(n) filesep  num2str(hand.chnum) ' ...'])
+            disp([hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'])
+            m = matfile([hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'writable',true);
             m.data = data(:,n); % ~ 10-12 s/ch
             end
         end
@@ -378,13 +377,13 @@ else
     else
         tic
         for n = 1:hand.chnum
-            if ~exist([hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
+            if ~exist([hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'],'file')
             fseek(fid,hand.minbyte + 2*(n-1),-1);
             skip = (hand.chnum-1)*2;
             data = fread(fid, [1,hand.maxsec*hand.srate]...
             ,'int16',skip)'.*0.25; % ~ 20 s/ch
-            hand.chname{n,1} = [hand.path, '/', hand.chsign , num2str(hand.chnames{1,n}), '.mat'];
-            disp(['Saving Channel ' num2str(n) '/' num2str(hand.chnum) ' ...']);
+            hand.chname{n,1} = [hand.path, filesep , hand.chsign , num2str(hand.chnames{1,n}), '.mat'];
+            disp(['Saving Channel ' num2str(n) filesep  num2str(hand.chnum) ' ...']);
             save (hand.chname{n,1},'data'); % ~ 11 s/ch
             end
         end

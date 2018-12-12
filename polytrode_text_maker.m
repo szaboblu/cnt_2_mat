@@ -8,10 +8,10 @@ if size(varargin)>0
 
 
 for i = 1 : (handles.chnum - poli +1)
-        if ~exist([handles.dirpath,'/Polytrodes'],'dir')
-            mkdir([handles.dirpath,'/Polytrodes']);
+        if ~exist([handles.dirpath filesep 'Polytrodes'],'dir')
+            mkdir([handles.dirpath filesep 'Polytrodes']);
         end
-            textfile_name = [handles.dirpath,'/Polytrodes','/','polytrode' ,num2str(i) ,'.txt'];
+            textfile_name = [handles.dirpath,filesep,'Polytrodes',filesep ,'polytrode' ,num2str(i) ,'.txt'];
             fileID = fopen(textfile_name,'w');
             vec = [];
         for n = 1 : poli-1
@@ -28,12 +28,12 @@ end
 end
 
 
-name = [handles.dirpath,'/log_deblock.mat'];
+name = [handles.dirpath,filesep 'log_deblock.mat'];
 m = matfile(name,'Writable',true);
 if size(polytrodes,2) > 0
 m.polytrodes = polytrodes;
 end
-%handles.path =[handles.path,'/',handles.par];
+%handles.path =[handles.path,filesep ,handles.par];
 if ~isempty(who('handles','h'))
 m.handles = handles.h;
 end
